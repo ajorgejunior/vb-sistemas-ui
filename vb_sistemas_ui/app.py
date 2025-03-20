@@ -38,7 +38,32 @@ if st.button("Buscar"):
                 processos = response.json()
                 if processos:
                     st.write(f"**{len(processos)} resultados encontrados:**")
-                    st.json(processos)  # Exibe os dados formatados
+
+                    # Criando um card para cada processo encontrado
+                    for processo in processos:
+                        with st.container():
+                            st.markdown(
+                                f"""
+                                <div style="border-radius: 10px; padding: 15px; background-color: #f8f9fa; 
+                                            box-shadow: 2px 2px 10px rgba(0,0,0,0.1); margin-bottom: 15px;">
+                                    <h4 style="color: #2c3e50;">📄 Processo: {processo.get("numero_processo", "N/A")}</h4>
+                                    <p><strong>Tribunal:</strong> {processo.get("jurisdicao", "N/A")}</p>
+                                    <p><strong>Órgão Julgador:</strong> {processo.get("orgao_julgador", "N/A")}</p>
+                                    <p><strong>Classe:</strong> {processo.get("classe", "N/A")}</p>
+                                    <p><strong>Assunto:</strong> {processo.get("assunto", "N/A")}</p>
+                                    <p><strong>Exequente:</strong> {processo.get("exequente", "N/A")}</p>
+                                    <p><strong>Executado:</strong> {processo.get("executado", "N/A")}</p>
+                                    <p><strong>Advogados:</strong> {", ".join(processo.get("advogados", [])) if processo.get("advogados") else "N/A"}</p>
+                                    <p><strong>Valor da Causa:</strong> R$ {processo.get("valor_causa", 0):,.2f}</p>
+                                    <p><strong>Gratuidade:</strong> {"Sim" if processo.get("gratuidade") else "Não"}</p>
+                                    <p><strong>Últimas Movimentações:</strong></p>
+                                    <ul>
+                                        {''.join(f'<li>{mov["data"]}: {mov["descricao"]}</li>' for mov in processo.get("movimentacoes", []))}
+                                    </ul>
+                                </div>
+                                """,
+                                unsafe_allow_html=True
+                            )
                 else:
                     st.warning("Nenhum processo encontrado.")
             except Exception as e:
@@ -47,4 +72,3 @@ if st.button("Buscar"):
             st.error(f"Erro na requisição: {response.status_code}")
     else:
         st.warning("Digite um termo para buscar.")
-
