@@ -7,6 +7,17 @@ st.set_page_config(page_title="Consulta de Processos Jurídicos", page_icon="�
 # URL do backend
 API_URL = "https://vb-sistemas.onrender.com"
 
+def verificar_status_api():
+    """Verifica se a API está online e retorna o status."""
+    try:
+        response = requests.get(f"{API_URL}/")
+        if response.status_code == 200:
+            return "🟢 API Online"
+        else:
+            return "🔴 API Offline"
+    except requests.exceptions.RequestException:
+        return "🔴 API Offline"
+
 def exibir_detalhes_processo(processo):
     """Exibe os detalhes do processo dentro de um container expansível."""
     with st.expander(f"📌 Processo: {processo.get('numero_processo', 'N/A')} | ⚖️ Advogado(s): {', '.join(processo.get('advogados', ['N/A']))}"):
@@ -77,6 +88,11 @@ def main():
         
         if uploaded_file and st.button("Enviar"):
             processar_pdf(uploaded_file)
+
+    # Rodapé com status da API
+    st.markdown("---")
+    api_status = verificar_status_api()
+    st.markdown(f"<p style='text-align: center; color: gray;'>📡 Status da API: {api_status}</p>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
