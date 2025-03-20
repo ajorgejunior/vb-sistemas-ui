@@ -1,23 +1,29 @@
 import streamlit as st
 import requests
 import json
-from io import BytesIO
 
-# Configuração da página
-st.set_page_config(page_title="Consulta de Processos Jurídicos", page_icon="🔍", layout="wide")
+def buscar_processos(tipo_busca, termo):
+    url = f"https://vb-sistemas.onrender.com/buscar-processos/?{tipo_busca}={termo}"
+    response = requests.get(url)
+    if response.status_code == 200:
+        return response.json()
+    else:
+        return None
 
-# Sidebar para seleção de funcionalidade
-st.sidebar.title("Menu")
-pagina = st.sidebar.radio("Selecione uma opção", ["Consulta de Processos", "Enviar PDF"])
+def enviar_pdf(arquivo):
+    url = "https://vb-sistemas.onrender.com/processar-pdf/"
+    files = {"pdf": arquivo}
+    response = requests.post(url, files=files)
+    return response
 
-# Definição da URL da API
-API_URL = "https://vb-sistemas.onrender.com"
+st.set_page_config(page_title="VB Sistemas - Consulta Jurídica", page_icon="🔍", layout="wide")
 
-if pagina == "Consulta de Processos":
-    st.title("🔍 Consulta de Processos Jurídicos")
+menu = st.sidebar.radio("Navegação", ["Consultar Processos", "Enviar PDF para Processamento"])
+
+if menu == "Consultar Processos":
+    st.markdown("# 🔍 Consulta de Processos Jurídicos")
     st.write("Selecione o tipo de dado e digite um termo para buscar informações.")
-
-    # Opções para busca
+    
     opcoes_busca = {
         "Número do Processo": "numero_processo",
         "Advogado": "advogado",
@@ -25,57 +31,72 @@ if pagina == "Consulta de Processos":
         "Exequente": "exequente",
         "Tribunal/Órgão Julgador": "tribunal"
     }
-
+    
     tipo_busca = st.selectbox("Escolha o tipo de dado para pesquisa:", list(opcoes_busca.keys()))
     termo_busca = st.text_input("Digite o termo para buscar...")
-
+    
     if st.button("Buscar"):
-        if not termo_busca.strip():
-            st.warning("Por favor, digite um termo para buscar.")
+        if termo_busca:
+            resultados = buscar_processos(opcoes_busca[tipo_busca], termo_busca)
+            if resultados and "processos" in resultados and resultados["processos"]:
+                st.write(f"**{len(resultados['processos'])} resultados encontrados:**")
+                for processo in resultados["processos"]:
+                    with st.expander(f"📌 {processo['numero_processo']} - {processo['orgao_julgador']}"):
+                        st.markdown(f"""
+                        **🏛️ Tribunal:** {processo["jurisdicao"]}  
+                        **📂 Classe:** {processo["classe"]}  
+                        **📝 Assunto:** {processo["assunto"]}  
+                        **💰 Valor da Causa:** R$ {processo["valor_causa"]:.2f}  
+                        **⚖️ Exequente:** {processo["exequente"]}  
+                        **⚖️ Executado:** {processo["executado"]}  
+                        **📅 Data de Criação:** {processo["data_criacao"]}  
+                        """)
+                        
+                        if "movimentacoes" in processo and isinstance(processo["movimentacoes"], list):
+                            st.write("### 📜 Movimentações:")
+                            for mov in processo["movimentacoes"]:
+                                st.markdown(f"- {mov}")
+            else:
+                st.warning("Nenhum processo encontrado para o termo informado.")
         else:
-            # Faz a requisição para a API
-            parametro_api = opcoes_busca[tipo_busca]
-            response = requests.get(f"{API_URL}/buscar-processos/", params={parametro_api: termo_busca})
+            st.error("Por favor, digite um termo para buscar.")
 
-            if response.status_code == 200:
-                dados = response.json().get("processos", [])
-                
-                if dados:
-                    st.success(f"{len(dados)} resultados encontrados:")
-                    for processo in dados:
-                        with st.expander(f"📂 Processo: {processo['numero_processo']}"):
-                            st.markdown(f"**📍 Tribunal:** {processo.get('jurisdicao', 'N/A')}")
-                            st.markdown(f"**🏛 Órgão Julgador:** {processo.get('orgao_julgador', 'N/A')}")
-                            st.markdown(f"**⚖️ Classe:** {processo.get('classe', 'N/A')}")
-                            st.markdown(f"**📌 Assunto:** {processo.get('assunto', 'N/A')}")
-                            st.markdown(f"**💰 Valor da Causa:** R$ {processo.get('valor_causa', 0):,.2f}")
-                            st.markdown(f"**👥 Exequente:** {processo.get('exequente', 'N/A')}")
-                            st.markdown(f"**👨‍⚖️ Executado:** {processo.get('executado', 'N/A')}")
-                            st.markdown(f"**⚖️ Advogados:** {', '.join(json.loads(processo['advogados'])) if 'advogados' in processo else 'N/A'}")
-                            st.markdown(f"**📆 Data de Criação:** {processo.get('data_criacao', 'N/A')}")
-
-                            movimentacoes = json.loads(processo["movimentacoes"]) if "movimentacoes" in processo else []
-                            if movimentacoes:
-                                st.markdown("**📜 Movimentações:**")
-                                for mov in movimentacoes:
-                                    st.markdown(f"- {mov}")
-                else:
-                    st.warning("Nenhum processo encontrado.")
-            else:
-                st.error("Erro ao buscar processos.")
-
-elif pagina == "Enviar PDF":
-    st.title("📤 Enviar PDF para Processamento")
+elif menu == "Enviar PDF para Processamento":
+    st.markdown("# 📤 Enviar PDF para Processamento")
     st.write("Envie um arquivo PDF contendo informações sobre processos jurídicos para extração e cadastro no sistema.")
-
-    uploaded_file = st.file_uploader("Escolha um arquivo PDF", type=["pdf"])
-
-    if uploaded_file is not None:
+    
+    arquivo_pdf = st.file_uploader("Escolha um arquivo PDF", type=["pdf"])
+    
+    if arquivo_pdf is not None:
         if st.button("Enviar"):
-            files = {"pdf": uploaded_file.getvalue()}
-            response = requests.post(f"{API_URL}/processar-pdf/", files=files)
-
+            response = enviar_pdf(arquivo_pdf)
             if response.status_code == 200:
-                st.success("Arquivo processado e salvo no banco de dados com sucesso!")
+                resposta_json = response.json()
+                if "mensagem" in resposta_json and "dados" in resposta_json:
+                    if resposta_json["mensagem"] == "Processo já existe no banco":
+                        st.warning("O processo já existe no banco de dados e não foi cadastrado novamente.")
+                        
+                        processo = resposta_json["dados"]
+                        with st.expander("Detalhes do Processo Existente"):
+                            st.markdown(f"""
+                                **📌 Número do Processo:** {processo["numero_processo"]}  
+                                **🏛️ Tribunal:** {processo["jurisdicao"]}  
+                                **⚖️ Órgão Julgador:** {processo["orgao_julgador"]}  
+                                **📂 Classe:** {processo["classe"]}  
+                                **📝 Assunto:** {processo["assunto"]}  
+                                **💰 Valor da Causa:** R$ {processo["valor_causa"]:.2f}  
+                                **⚖️ Exequente:** {processo["exequente"]}  
+                                **⚖️ Executado:** {processo["executado"]}  
+                                **📅 Data de Criação:** {processo["data_criacao"]}  
+                            """)
+                            
+                            if "movimentacoes" in processo and isinstance(processo["movimentacoes"], list):
+                                st.write("### 📜 Movimentações:")
+                                for mov in processo["movimentacoes"]:
+                                    st.markdown(f"- {mov}")
+                    else:
+                        st.success("Arquivo processado e salvo no banco de dados com sucesso!")
+                else:
+                    st.success("Arquivo processado e salvo no banco de dados com sucesso!")
             else:
-                st.error(f"Erro ao enviar o arquivo. Código {response.status_code}")
+                st.error(f"Erro ao enviar o arquivo. Código {response.status_code} - {response.text}")
