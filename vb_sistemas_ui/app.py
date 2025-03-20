@@ -1,5 +1,6 @@
 import streamlit as st
 import requests
+import json
 
 # Configuração da página
 st.set_page_config(page_title="Consulta de Processos Jurídicos", page_icon="🔍", layout="wide")
@@ -13,9 +14,6 @@ tipos_pesquisa = {
     "Número do Processo": "numero_processo",
     "Tribunal": "jurisdicao",
     "Órgão Julgador": "orgao_julgador",
-    "Competência": "competencia",
-    "Classe": "classe",
-    "Assunto": "assunto",
     "Exequente": "exequente",
     "Executado": "executado",
     "Advogado": "advogados"
@@ -56,21 +54,18 @@ if st.button("Buscar", type="primary"):
                             st.subheader(f"📌 Processo: {processo['numero_processo']}")
                             st.write(f"**📍 Jurisdição:** {processo['jurisdicao']}")
                             st.write(f"**🏛 Órgão Julgador:** {processo['orgao_julgador']}")
-                            st.write(f"**⚖️ Competência:** {processo['competencia']}")
-                            st.write(f"**📂 Classe:** {processo['classe']}")
-                            st.write(f"**📜 Assunto:** {processo['assunto']}")
                             st.write(f"**👤 Exequente:** {processo['exequente']}")
                             st.write(f"**⚖️ Executado:** {processo['executado']}")
 
-                            # Converte string JSON para lista e exibe advogados
-                            advogados = eval(processo["advogados"])
-                            st.write(f"**👨‍⚖️ Advogados:** {', '.join(advogados)}")
+                            # Verifica e converte JSON corretamente para lista
+                            advogados = json.loads(processo["advogados"]) if isinstance(processo["advogados"], str) else processo["advogados"]
+                            st.write(f"**👨‍⚖️ Advogados:** {', '.join(advogados) if advogados else 'Não informado'}")
 
                             st.write(f"**💰 Valor da Causa:** R$ {processo['valor_causa']:,.2f}")
                             st.write(f"**📌 Gratuidade:** {'Sim' if processo['gratuidade'] else 'Não'}")
 
                             # Exibir movimentações
-                            movimentacoes = eval(processo["movimentacoes"])
+                            movimentacoes = json.loads(processo["movimentacoes"]) if isinstance(processo["movimentacoes"], str) else processo["movimentacoes"]
                             st.write("📌 **Movimentações:**")
                             for mov in movimentacoes:
                                 st.write(f"- {mov}")
@@ -83,3 +78,4 @@ if st.button("Buscar", type="primary"):
                 st.error("Resposta inesperada do servidor.")
         else:
             st.error(f"Erro ao buscar processos: {response.status_code}")
+
