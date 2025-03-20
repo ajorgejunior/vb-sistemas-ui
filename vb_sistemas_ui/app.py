@@ -9,14 +9,13 @@ st.set_page_config(page_title="Consulta de Processos Jurídicos", page_icon="�
 st.markdown("<h1 style='text-align: center;'>🔍 Consulta de Processos Jurídicos</h1>", unsafe_allow_html=True)
 st.write("Selecione o tipo de dado e digite um termo para buscar informações.")
 
-# Opções de filtro para pesquisa
+# Opções de filtro para pesquisa (ajustadas para corresponder à API)
 tipos_pesquisa = {
     "Número do Processo": "numero_processo",
-    "Tribunal": "jurisdicao",
-    "Órgão Julgador": "orgao_julgador",
+    "Tribunal": "tribunal",
     "Exequente": "exequente",
     "Executado": "executado",
-    "Advogado": "advogados"
+    "Advogado": "advogado"
 }
 
 # Seletor para tipo de dado a ser pesquisado
@@ -52,13 +51,12 @@ if st.button("Buscar", type="primary"):
                     for processo in processos:
                         with st.container():
                             st.subheader(f"📌 Processo: {processo['numero_processo']}")
-                            st.write(f"**📍 Jurisdição:** {processo['jurisdicao']}")
-                            st.write(f"**🏛 Órgão Julgador:** {processo['orgao_julgador']}")
+                            st.write(f"**📍 Tribunal:** {processo['tribunal']}")
                             st.write(f"**👤 Exequente:** {processo['exequente']}")
                             st.write(f"**⚖️ Executado:** {processo['executado']}")
 
                             # Verifica e converte JSON corretamente para lista
-                            advogados = json.loads(processo["advogados"]) if isinstance(processo["advogados"], str) else processo["advogados"]
+                            advogados = json.loads(processo["advogado"]) if isinstance(processo["advogado"], str) else processo["advogado"]
                             st.write(f"**👨‍⚖️ Advogados:** {', '.join(advogados) if advogados else 'Não informado'}")
 
                             st.write(f"**💰 Valor da Causa:** R$ {processo['valor_causa']:,.2f}")
@@ -78,4 +76,3 @@ if st.button("Buscar", type="primary"):
                 st.error("Resposta inesperada do servidor.")
         else:
             st.error(f"Erro ao buscar processos: {response.status_code}")
-
