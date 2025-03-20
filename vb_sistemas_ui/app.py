@@ -8,34 +8,27 @@ st.set_page_config(page_title="Consulta de Processos Jurídicos", page_icon="�
 API_URL = "https://vb-sistemas.onrender.com"
 
 def exibir_detalhes_processo(processo):
-    """Exibe os detalhes do processo de forma estruturada."""
-    st.markdown("### 📝 Detalhes do Processo")
-    st.write(f"**📌 Número do Processo:** {processo.get('numero_processo', 'N/A')}")
-    st.write(f"**⚖️ Instância:** {processo.get('instancia', 'N/A')}")
-    st.write(f"**🏩 Tribunal:** {processo.get('jurisdicao', 'N/A')}")
-    st.write(f"**📍 Órgão Julgador:** {processo.get('orgao_julgador', 'N/A')}")
-    st.write(f"**📝 Competência:** {processo.get('competencia', 'N/A')}")
-    st.write(f"**📂 Classe:** {processo.get('classe', 'N/A')}")
-    st.write(f"**📁 Assunto:** {processo.get('assunto', 'N/A')}")
-    st.write(f"**👨‍⚖️ Exequente:** {processo.get('exequente', 'N/A')}")
-    st.write(f"**👤 Executado:** {processo.get('executado', 'N/A')}")
-    st.write(f"**💰 Valor da Causa:** R$ {processo.get('valor_causa', 'N/A')}")
-    st.write(f"**📛 Gratuidade:** {'Sim' if processo.get('gratuidade', False) else 'Não'}")
-    
-    if "advogados" in processo:
-        advogados = processo["advogados"]
-        if isinstance(advogados, list):
-            advogados = ", ".join(advogados)
-        st.write(f"**⚖️ Advogados:** {advogados}")
-    
-    if "movimentacoes" in processo:
-        movimentacoes = processo["movimentacoes"]
-        if isinstance(movimentacoes, list):
-            movimentacoes = "\n".join(movimentacoes)
-        st.write(f"**📌 Movimentações:** \n{movimentacoes}")
-    
-    if "data_criacao" in processo:
-        st.write(f"**📅 Data de Criação:** {processo['data_criacao']}")
+    """Exibe os detalhes do processo dentro de um container expansível."""
+    with st.expander(f"📌 Processo: {processo.get('numero_processo', 'N/A')} | ⚖️ Advogado(s): {', '.join(processo.get('advogados', ['N/A']))}"):
+        st.write(f"**⚖️ Instância:** {processo.get('instancia', 'N/A')}")
+        st.write(f"**🏩 Tribunal:** {processo.get('jurisdicao', 'N/A')}")
+        st.write(f"**📍 Órgão Julgador:** {processo.get('orgao_julgador', 'N/A')}")
+        st.write(f"**📝 Competência:** {processo.get('competencia', 'N/A')}")
+        st.write(f"**📂 Classe:** {processo.get('classe', 'N/A')}")
+        st.write(f"**📁 Assunto:** {processo.get('assunto', 'N/A')}")
+        st.write(f"**👨‍⚖️ Exequente:** {processo.get('exequente', 'N/A')}")
+        st.write(f"**👤 Executado:** {processo.get('executado', 'N/A')}")
+        st.write(f"**💰 Valor da Causa:** R$ {processo.get('valor_causa', 'N/A')}")
+        st.write(f"**📛 Gratuidade:** {'Sim' if processo.get('gratuidade', False) else 'Não'}")
+
+        if "movimentacoes" in processo:
+            movimentacoes = processo["movimentacoes"]
+            if isinstance(movimentacoes, list):
+                movimentacoes = "\n".join(movimentacoes)
+            st.write(f"**📌 Movimentações:** \n{movimentacoes}")
+
+        if "data_criacao" in processo:
+            st.write(f"**📅 Data de Criação:** {processo['data_criacao']}")
 
 def processar_pdf(uploaded_file):
     """Envia um arquivo PDF para processamento no backend."""
