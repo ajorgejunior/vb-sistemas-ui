@@ -1,74 +1,85 @@
 import streamlit as st
 import requests
 
-# Definir URL da API backend
-API_URL = "https://vb-sistemas.onrender.com"
+# Configuração da página
+st.set_page_config(page_title="Consulta de Processos Jurídicos", page_icon="🔍", layout="wide")
 
-# Configuração do layout
-st.set_page_config(page_title="Consulta de Processos", layout="centered")
-st.title("🔍 Consulta de Processos Jurídicos")
+# Título do aplicativo
+st.markdown("<h1 style='text-align: center;'>🔍 Consulta de Processos Jurídicos</h1>", unsafe_allow_html=True)
 st.write("Selecione o tipo de dado e digite um termo para buscar informações.")
 
-# Opções para tipo de pesquisa
-opcoes_pesquisa = {
+# Opções de filtro para pesquisa
+tipos_pesquisa = {
     "Número do Processo": "numero_processo",
-    "Nome do Advogado": "advogado",
-    "Tribunal": "tribunal",
+    "Tribunal": "jurisdicao",
+    "Órgão Julgador": "orgao_julgador",
+    "Competência": "competencia",
+    "Classe": "classe",
+    "Assunto": "assunto",
     "Exequente": "exequente",
-    "Executado": "executado"
+    "Executado": "executado",
+    "Advogado": "advogados"
 }
 
-# Seleção do tipo de pesquisa
-tipo_pesquisa = st.selectbox("Escolha o tipo de dado para pesquisa:", list(opcoes_pesquisa.keys()))
+# Seletor para tipo de dado a ser pesquisado
+tipo_dado = st.selectbox("Escolha o tipo de dado para pesquisa:", list(tipos_pesquisa.keys()))
 
-# Campo de entrada para busca
-search_query = st.text_input("Digite o termo para buscar...")
+# Campo de entrada para o termo de busca
+termo_busca = st.text_input("Digite o termo para buscar...")
 
 # Botão de busca
-if st.button("Buscar"):
-    if search_query:
-        # Obter o parâmetro correto do dicionário
-        parametro = opcoes_pesquisa[tipo_pesquisa]
+if st.button("Buscar", type="primary"):
+    if termo_busca.strip() == "":
+        st.warning("Por favor, digite um termo para buscar.")
+    else:
+        # Monta a URL para a requisição no backend
+        backend_url = "https://vb-sistemas.onrender.com/buscar-processos"
+        params = {tipos_pesquisa[tipo_dado]: termo_busca}
 
-        # Fazer requisição ao backend
-        response = requests.get(f"{API_URL}/buscar-processos/", params={parametro: search_query})
+        # Faz a requisição ao backend
+        response = requests.get(backend_url, params=params)
 
+        # Processa a resposta
         if response.status_code == 200:
-            try:
-                processos = response.json()
+            data = response.json()
+
+            # Verifica se há processos retornados
+            if "processos" in data and isinstance(data["processos"], list):
+                processos = data["processos"]
+
                 if processos:
                     st.write(f"**{len(processos)} resultados encontrados:**")
 
-                    # Criando um card para cada processo encontrado
+                    # Exibir os processos de forma mais amigável
                     for processo in processos:
                         with st.container():
-                            st.markdown(
-                                f"""
-                                <div style="border-radius: 10px; padding: 15px; background-color: #f8f9fa; 
-                                            box-shadow: 2px 2px 10px rgba(0,0,0,0.1); margin-bottom: 15px;">
-                                    <h4 style="color: #2c3e50;">📄 Processo: {processo.get("numero_processo", "N/A")}</h4>
-                                    <p><strong>Tribunal:</strong> {processo.get("jurisdicao", "N/A")}</p>
-                                    <p><strong>Órgão Julgador:</strong> {processo.get("orgao_julgador", "N/A")}</p>
-                                    <p><strong>Classe:</strong> {processo.get("classe", "N/A")}</p>
-                                    <p><strong>Assunto:</strong> {processo.get("assunto", "N/A")}</p>
-                                    <p><strong>Exequente:</strong> {processo.get("exequente", "N/A")}</p>
-                                    <p><strong>Executado:</strong> {processo.get("executado", "N/A")}</p>
-                                    <p><strong>Advogados:</strong> {", ".join(processo.get("advogados", [])) if processo.get("advogados") else "N/A"}</p>
-                                    <p><strong>Valor da Causa:</strong> R$ {processo.get("valor_causa", 0):,.2f}</p>
-                                    <p><strong>Gratuidade:</strong> {"Sim" if processo.get("gratuidade") else "Não"}</p>
-                                    <p><strong>Últimas Movimentações:</strong></p>
-                                    <ul>
-                                        {''.join(f'<li>{mov["data"]}: {mov["descricao"]}</li>' for mov in processo.get("movimentacoes", []))}
-                                    </ul>
-                                </div>
-                                """,
-                                unsafe_allow_html=True
-                            )
+                            st.subheader(f"📌 Processo: {processo['numero_processo']}")
+                            st.write(f"**📍 Jurisdição:** {processo['jurisdicao']}")
+                            st.write(f"**🏛 Órgão Julgador:** {processo['orgao_julgador']}")
+                            st.write(f"**⚖️ Competência:** {processo['competencia']}")
+                            st.write(f"**📂 Classe:** {processo['classe']}")
+                            st.write(f"**📜 Assunto:** {processo['assunto']}")
+                            st.write(f"**👤 Exequente:** {processo['exequente']}")
+                            st.write(f"**⚖️ Executado:** {processo['executado']}")
+
+                            # Converte string JSON para lista e exibe advogados
+                            advogados = eval(processo["advogados"])
+                            st.write(f"**👨‍⚖️ Advogados:** {', '.join(advogados)}")
+
+                            st.write(f"**💰 Valor da Causa:** R$ {processo['valor_causa']:,.2f}")
+                            st.write(f"**📌 Gratuidade:** {'Sim' if processo['gratuidade'] else 'Não'}")
+
+                            # Exibir movimentações
+                            movimentacoes = eval(processo["movimentacoes"])
+                            st.write("📌 **Movimentações:**")
+                            for mov in movimentacoes:
+                                st.write(f"- {mov}")
+
+                            st.markdown("---")  # Linha divisória entre processos
+
                 else:
-                    st.warning("Nenhum processo encontrado.")
-            except Exception as e:
-                st.error(f"Erro ao processar resposta do servidor: {e}")
+                    st.warning("Nenhum processo encontrado para esse critério.")
+            else:
+                st.error("Resposta inesperada do servidor.")
         else:
-            st.error(f"Erro na requisição: {response.status_code}")
-    else:
-        st.warning("Digite um termo para buscar.")
+            st.error(f"Erro ao buscar processos: {response.status_code}")
