@@ -7,40 +7,44 @@ API_URL = "https://vb-sistemas.onrender.com"
 # Configuração do layout
 st.set_page_config(page_title="Consulta de Processos", layout="centered")
 st.title("🔍 Consulta de Processos Jurídicos")
-st.write("Digite um número de processo, advogado, tribunal, exequente ou executado para buscar informações.")
+st.write("Selecione o tipo de dado e digite um termo para buscar informações.")
 
-# Campo de entrada do usuário
-search_query = st.text_input("Digite um termo para buscar...")
+# Opções para tipo de pesquisa
+opcoes_pesquisa = {
+    "Número do Processo": "numero_processo",
+    "Nome do Advogado": "advogado",
+    "Tribunal": "tribunal",
+    "Exequente": "exequente",
+    "Executado": "executado"
+}
+
+# Seleção do tipo de pesquisa
+tipo_pesquisa = st.selectbox("Escolha o tipo de dado para pesquisa:", list(opcoes_pesquisa.keys()))
+
+# Campo de entrada para busca
+search_query = st.text_input("Digite o termo para buscar...")
 
 # Botão de busca
 if st.button("Buscar"):
     if search_query:
-        resultados_combinados = []
-        parametros = ["numero_processo", "advogado", "tribunal", "exequente", "executado"]
+        # Obter o parâmetro correto do dicionário
+        parametro = opcoes_pesquisa[tipo_pesquisa]
 
-        # Fazer requisição para cada parâmetro e combinar os resultados
-        for param in parametros:
-            response = requests.get(f"{API_URL}/buscar-processos/", params={param: search_query})
+        # Fazer requisição ao backend
+        response = requests.get(f"{API_URL}/buscar-processos/", params={parametro: search_query})
 
-            if response.status_code == 200:
-                try:
-                    processos = response.json()
-                    if isinstance(processos, list):  # Garante que a resposta seja uma lista
-                        for p in processos:
-                            if isinstance(p, dict) and "numero_processo" in p:
-                                resultados_combinados.append(p)
-                except Exception as e:
-                    st.error(f"Erro ao processar resposta do servidor para {param}: {e}")
-
-        # Remover duplicatas (caso um processo seja encontrado em mais de um campo)
-        resultados_unicos = {p["numero_processo"]: p for p in resultados_combinados}.values()
-
-        # Exibir resultados
-        if resultados_unicos:
-            st.write(f"**{len(resultados_unicos)} resultados encontrados:**")
-            st.json(list(resultados_unicos))  # Exibe os dados formatados
+        if response.status_code == 200:
+            try:
+                processos = response.json()
+                if processos:
+                    st.write(f"**{len(processos)} resultados encontrados:**")
+                    st.json(processos)  # Exibe os dados formatados
+                else:
+                    st.warning("Nenhum processo encontrado.")
+            except Exception as e:
+                st.error(f"Erro ao processar resposta do servidor: {e}")
         else:
-            st.warning("Nenhum processo encontrado.")
-
+            st.error(f"Erro na requisição: {response.status_code}")
     else:
         st.warning("Digite um termo para buscar.")
+
