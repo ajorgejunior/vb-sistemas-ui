@@ -25,8 +25,10 @@ if st.button("Buscar"):
             if response.status_code == 200:
                 try:
                     processos = response.json()
-                    if processos:  # Adiciona os resultados se houver algum
-                        resultados_combinados.extend(processos)
+                    if isinstance(processos, list):  # Garante que a resposta seja uma lista
+                        for p in processos:
+                            if isinstance(p, dict) and "numero_processo" in p:
+                                resultados_combinados.append(p)
                 except Exception as e:
                     st.error(f"Erro ao processar resposta do servidor para {param}: {e}")
 
