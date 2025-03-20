@@ -10,8 +10,8 @@ API_URL = "https://vb-sistemas.onrender.com"
 def verificar_status_api():
     """Verifica se a API está online e retorna o status."""
     try:
-        response = requests.get(f"{API_URL}/")
-        if response.status_code == 200:
+        response = requests.get(f"{API_URL}/docs", timeout=3)  # Testando a rota de documentação
+        if response.status_code in [200, 307]:  # 307 ocorre se houver redirecionamento
             return "🟢 API Online"
         else:
             return "🔴 API Offline"
