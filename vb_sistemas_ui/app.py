@@ -12,7 +12,7 @@ st.write("Selecione o tipo de dado e digite um termo para buscar informações."
 # Opções de filtro para pesquisa (ajustadas para corresponder à API)
 tipos_pesquisa = {
     "Número do Processo": "numero_processo",
-    "Tribunal": "tribunal",
+    "Tribunal": "jurisdicao",  # Ajustado para corresponder ao backend
     "Exequente": "exequente",
     "Executado": "executado",
     "Advogado": "advogado"
@@ -50,17 +50,17 @@ if st.button("Buscar", type="primary"):
                     # Exibir os processos de forma mais amigável
                     for processo in processos:
                         with st.container():
-                            st.subheader(f"📌 Processo: {processo['numero_processo']}")
-                            st.write(f"**📍 Tribunal:** {processo['tribunal']}")
-                            st.write(f"**👤 Exequente:** {processo['exequente']}")
-                            st.write(f"**⚖️ Executado:** {processo['executado']}")
+                            st.subheader(f"📌 Processo: {processo.get('numero_processo', 'Não informado')}")
+                            st.write(f"**📍 Tribunal:** {processo.get('jurisdicao', 'Não informado')}")  # Ajustado
+                            st.write(f"**👤 Exequente:** {processo.get('exequente', 'Não informado')}")
+                            st.write(f"**⚖️ Executado:** {processo.get('executado', 'Não informado')}")
 
                             # Verifica e converte JSON corretamente para lista
-                            advogados = json.loads(processo["advogado"]) if isinstance(processo["advogado"], str) else processo["advogado"]
+                            advogados = json.loads(processo["advogados"]) if isinstance(processo["advogados"], str) else processo["advogados"]
                             st.write(f"**👨‍⚖️ Advogados:** {', '.join(advogados) if advogados else 'Não informado'}")
 
-                            st.write(f"**💰 Valor da Causa:** R$ {processo['valor_causa']:,.2f}")
-                            st.write(f"**📌 Gratuidade:** {'Sim' if processo['gratuidade'] else 'Não'}")
+                            st.write(f"**💰 Valor da Causa:** R$ {processo.get('valor_causa', 0):,.2f}")
+                            st.write(f"**📌 Gratuidade:** {'Sim' if processo.get('gratuidade', False) else 'Não'}")
 
                             # Exibir movimentações
                             movimentacoes = json.loads(processo["movimentacoes"]) if isinstance(processo["movimentacoes"], str) else processo["movimentacoes"]
