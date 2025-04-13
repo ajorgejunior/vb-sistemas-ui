@@ -40,23 +40,39 @@ def mostrar():
 
     mostrar_resultados = False
 
-    if st.button("🔎 Buscar") or numero_param:
-        processos = obter_processos_brutos(numero_busca.strip())
+    buscar = st.button("🔎 Buscar")
+
+    # Quando clicar no botão, salvar o número e sinalizar que é uma busca ativa
+    if buscar:
+        numero_digitado = numero_busca.strip()
+        st.session_state.numero_digesto = numero_digitado if numero_digitado else None
+        st.session_state.busca_ativa = bool(numero_digitado)
+
+    # Se há busca ativa, buscar o processo por número
+    if st.session_state.get("busca_ativa"):
+        processos = obter_processos_brutos(st.session_state.numero_digesto)
         mostrar_resultados = True
     else:
         processos = obter_processos_brutos()
-
-    st.session_state.numero_digesto = None
+        mostrar_resultados = False
 
     titulo = "📄 Resultados" if mostrar_resultados else "🕒 Últimos processos cadastrados"
     st.subheader(titulo)
 
     if not processos:
+        # ✅ Limpa os estados antes de sair
+        st.session_state.numero_digesto = None
+        st.session_state.busca_ativa = False
         st.info("Nenhum processo bruto encontrado.")
         return
 
     # ⚡ Requisição única para todas as movimentações
     todas_movs_por_processo = obter_todas_movimentacoes()
+    
+    processos.sort(
+    key=lambda p: p.get("json_original", {}).get("alteradoEm", ""),
+    reverse=True  # True = mais recentes primeiro
+    )
 
     for processo in processos[:5]:  # Mostrar apenas os 5 mais recentes
         dados = processo.get("json_original", {})
@@ -72,7 +88,19 @@ def mostrar():
             if len(partes_seguras) >= 3:
                 break
 
-        with st.expander(f"📄 {numero_processo} | {tribunal} | {', '.join(partes_seguras)}", expanded=bool(numero_param)):
+        # Controle de abertura do expander baseado no processo
+        expander_key = f"expander_aberto_{processo['id']}"
+        def normalizar_numero(n):
+            return n.replace(".", "").replace("-", "").strip() if isinstance(n, str) else ""
+
+        num_proc_normalizado = normalizar_numero(numero_processo)
+        num_digesto_normalizado = normalizar_numero(st.session_state.get("numero_digesto"))
+
+        if expander_key not in st.session_state:
+            st.session_state[expander_key] = False
+
+        with st.expander(f"📄 {numero_processo} | {tribunal} | {', '.join(partes_seguras)}", expanded=st.session_state[expander_key]):
+
             col1, col2 = st.columns(2)
             with col1:
                 st.markdown(f"**Classe:** {dados.get('classeNatureza') or '-'}")
@@ -113,6 +141,8 @@ def mostrar():
             movs = dados.get("movs", [])
             if movs:
                 ver_todas_movs = st.checkbox(f"Ver todas ({len(movs)})", key=f"digesto_{processo['id']}")
+                if ver_todas_movs:
+                    st.session_state[expander_key] = True
                 exibidas = movs if ver_todas_movs else movs[:5]
                 for mov in exibidas:
                     if len(mov) > 2:
@@ -129,6 +159,8 @@ def mostrar():
             movs_banco = todas_movs_por_processo.get(numero_processo, [])
             if movs_banco:
                 ver_todas_banco = st.checkbox(f"Ver todas ({len(movs_banco)})", key=f"banco_{processo['id']}")
+                if ver_todas_banco:
+                    st.session_state[expander_key] = True
                 exibidas = movs_banco if ver_todas_banco else movs_banco[:5]
                 for mov in exibidas:
                     data = mov.get("data")
@@ -141,4 +173,26 @@ def mostrar():
                     st.markdown(f"- `{data_formatada}` **{resumo}** – {descricao}")
             else:
                 st.write("Nenhuma movimentação encontrada no banco.")
+            
+            st.markdown("**📎 Anexos do processo:**")
+            anexos = dados.get("anexos", [])
+            if anexos:
+                checkbox_key = f"anexos_{processo['id']}_ver_todos"
+                ver_todos_anexos = st.checkbox(f"Ver todos os anexos ({len(anexos)})", key=checkbox_key)
+
+                if ver_todos_anexos:
+                    st.session_state[expander_key] = True
+
+                exibidos = anexos if ver_todos_anexos else anexos[:3]
+
+                for anexo in exibidos:
+                    if isinstance(anexo, list) and len(anexo) >= 2:
+                        nome, link = anexo[0], anexo[1]
+                        st.markdown(f"- 🔗 [{nome}]({link})")
+                    else:
+                        st.markdown("- ⚠️ Anexo em formato inesperado.")
+            else:
+                st.write("Nenhum anexo disponível.")
+
+    # ✅ Nada é limpo aqui — isso já é feito acima em caso de retorno
 

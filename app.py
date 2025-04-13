@@ -1,5 +1,5 @@
 import streamlit as st
-from modules import home, painel, consultar, enviar_pdf, digesto, cadastrar_digesto
+from modules import home, painel, consultar, enviar_pdf, digesto, cadastrar_digesto, conversar
 from utils import verificar_status_api
 
 st.set_page_config(page_title="Consulta de Processos Jurídicos", page_icon="🔍", layout="wide")
@@ -10,7 +10,8 @@ paginas = {
     "🔍 Consultar Processos": consultar,
     "📄 Enviar PDF para Processamento": enviar_pdf,
     "📦 Processos da Digesto": digesto,
-    "📥 Cadastrar Digesto": cadastrar_digesto
+    "📥 Cadastrar Digesto": cadastrar_digesto,
+    "💬 Conversar com Processo": conversar
 }
 
 # Redirecionamento via query string
