@@ -2,7 +2,7 @@ import requests
 import streamlit as st
 import math
 
-API_URL = "https://vb-sistemas.onrender.com"
+API_URL = "https://webhook-digesto.onrender.com"
 
 def obter_processos():
     try:
