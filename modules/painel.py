@@ -3,7 +3,7 @@ import pandas as pd
 from utils import obter_processos, calcular_estatisticas
 
 def mostrar():
-    st.title("📊 Painel de Estatísticas")
+    st.title("📊 Painel de Estatísticas (em construção)")
     processos = obter_processos()
     estatisticas = calcular_estatisticas(processos)
 

@@ -1,7 +1,9 @@
 import streamlit as st
 import requests
+import re
 from utils import API_URL
 from datetime import datetime
+from collections import defaultdict
 
 @st.cache_data(ttl=3600)
 def get_partes_processo(numero_processo):
@@ -44,6 +46,7 @@ def mostrar():
         st.text(str(e))
         return
 
+    # Obtém ids de movimentações lidas
     lidas = set()
     try:
         lidas_resp = requests.get(f"{API_URL}/movimentacoes-lidas/")
@@ -52,48 +55,65 @@ def mostrar():
     except:
         pass
 
-    nao_lidas = [m for m in movimentacoes if m["id"] not in lidas]
+    # Agrupar movimentações por processo
+    agrupados = defaultdict(list)
+    for mov in movimentacoes:
+        agrupados[mov["processo_numero"]].append(mov)
 
-    st.markdown(f"### 🔔 <span style='color:red; font-size:24px'>{len(nao_lidas)} novas movimentações não lidas</span>", unsafe_allow_html=True)
-
-    if not nao_lidas:
-        st.info("Nenhuma movimentação para exibir.")
-        return
-
-    itens_por_pagina = 10
-    total_paginas = (len(nao_lidas) - 1) // itens_por_pagina + 1
-    pagina_atual = st.selectbox("Página", list(range(1, total_paginas + 1)))
-    inicio = (pagina_atual - 1) * itens_por_pagina
-    fim = inicio + itens_por_pagina
-    exibidos = nao_lidas[inicio:fim]
-
-    for mov in exibidos:
-        data_formatada = datetime.strptime(mov["data"], "%Y-%m-%d").strftime("%d/%m/%Y")
-        processo_numero = mov["processo_numero"]
-
+    for processo_numero, movs in agrupados.items():
         principais = get_partes_processo(processo_numero)
         partes_info = f" — 👥 {', '.join(principais)}" if principais else ""
 
-        st.markdown(f'''
-<div style='font-size:18px; font-weight:600; margin-top: 20px'>
-📂 Processo <span style='color:green'>{processo_numero}</span> —
-<span style='color:#008b8b'>{data_formatada}</span>{partes_info}
+        total = len(movs)
+        nao_lidas = [m for m in movs if m["id"] not in lidas]
+        qtd_nao_lidas = len(nao_lidas)
+
+        if qtd_nao_lidas == 0:
+            continue  # Oculta processos sem movimentações não lidas
+
+        cor_balao = "#ff4d4d"
+
+        st.markdown(f"""
+<div style='display: flex; justify-content: space-between; align-items: center; border: 1px solid #ccc; padding: 10px; border-radius: 10px; margin-top: 10px'>
+  <div>
+    <div style='font-size: 18px; font-weight: 600'>📂 {processo_numero}</div>
+    <div style='color: #555; font-size: 15px'>{partes_info}</div>
+  </div>
+  <div style='text-align: right'>
+    <div style='background-color: {cor_balao}; color: white; padding: 5px 10px; border-radius: 20px; font-size: 14px'>
+      {qtd_nao_lidas}/{total}
+    </div>
+  </div>
 </div>
-''', unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
-        with st.expander("🔍 Ver detalhes da movimentação"):
-            st.markdown(f"**📅 Data:** `{data_formatada}`")
-            st.markdown(f"**📝 Resumo:** {mov.get('resumo', '-')}")
-            st.markdown(f"**📃 Descrição:** {mov.get('descricao', '-')}")
+        with st.expander("🔍 Ver movimentações não lidas"):
+            for mov in sorted(nao_lidas, key=lambda m: m["data"], reverse=True):
+                data_formatada = datetime.strptime(mov["data"], "%Y-%m-%d").strftime("%d/%m/%Y")
+                st.markdown(f"<div style='color:red'><b>{data_formatada}</b> — {mov.get('descricao') or '-'}</div>", unsafe_allow_html=True)
 
-            col1, col2 = st.columns([1, 2])
-            if col1.button("✅ Marcar como lida", key=f"lida_{mov['id']}"):
-                res = requests.post(f"{API_URL}/movimentacoes-lidas/{mov['id']}")
+                col1, col2 = st.columns([1, 2])
+                if col1.button("✅ Marcar como lida", key=f"lida_{mov['id']}"):
+                    res = requests.post(f"{API_URL}/movimentacoes-lidas/{mov['id']}")
+                    if res.status_code == 200:
+                        st.rerun()
+                    else:
+                        st.error(f"Erro ao marcar como lida: {res.status_code} - {res.text}")
+                if col2.button("📦 Ver detalhes na Digesto", key=f"detalhes_{mov['id']}"):
+                    st.query_params = {"page": "📦 Processos da Digesto", "numero": processo_numero}
+                    st.rerun()
+
+            st.markdown("---")
+            if st.button("✅ Marcar todas como lidas", key=f"marcar_todas_{processo_numero}"):
+                
+
+                uuid_regex = re.compile(r"^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$", re.I)
+                ids = [mov["id"] for mov in nao_lidas if isinstance(mov["id"], str) and uuid_regex.match(mov["id"])]
+
+                res = requests.post(f"{API_URL}/movimentacoes-lidas-em-lote", json={"ids": [mov["id"] for mov in nao_lidas],"usuario_id": "default"})
                 if res.status_code == 200:
+                    st.success("Todas as movimentações foram marcadas como lidas.")
                     st.rerun()
                 else:
-                    st.error(f"Erro ao marcar como lida: {res.status_code} - {res.text}")
+                    st.error(f"Erro ao marcar como lidas: {res.status_code} - {res.text}")
 
-            if col2.button("📦 Ver detalhes na Digesto", key=f"detalhes_{mov['id']}"):
-                st.query_params = {"page": "📦 Processos da Digesto", "numero": processo_numero}
-                st.rerun()
