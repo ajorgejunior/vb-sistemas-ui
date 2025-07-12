@@ -4,3 +4,4 @@ tabulate
 math
 io
 supabase
+python-dotenv
