@@ -1,6 +1,5 @@
 streamlit
 requests
 tabulate
-io
 supabase
 python-dotenv
