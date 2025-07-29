@@ -9,11 +9,11 @@ st.set_page_config(page_title="Consulta de Processos Jurídicos", page_icon="�
 paginas_base = {
     "🏠 Início": home,
 #    "📊 Painel de Estatísticas": painel,
-    "🔍 Consultar Processos": consultar,
-    "📄 Enviar PDF para Processamento": enviar_pdf,
-    "📦 Processos da Digesto": digesto,
-    "📥 Cadastrar Digesto": cadastrar_digesto,
-    "💬 Conversar com Processo": conversar
+#    "🔍 Consultar Processos": consultar,
+#    "📄 Enviar PDF para Processamento": enviar_pdf,
+    "📦 Consultar Processos (API)": digesto,
+    "📥 Cadastrar Processo (API)": cadastrar_digesto,
+    "💬 Conversar com Processo (GPT)": conversar
 }
 
 # Adiciona "🔐 Login" se usuário não estiver logado ou ainda não preencheu nome

@@ -74,7 +74,7 @@ def mostrar():
     reverse=True  # True = mais recentes primeiro
     )
 
-    for processo in processos[:5]:  # Mostrar apenas os 5 mais recentes
+    for processo in processos[:100]:  # Mostrar apenas os 5 mais recentes
         dados = processo.get("json_original", {})
         numero_processo = processo.get("numero_processo", "-")
         tribunal = dados.get("tribunal") or "-"
